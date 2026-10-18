@@ -1,36 +1,33 @@
 module.exports = {
     start(rain) {
         const { findByProps } = rain.metro;
-        
         const MessageActions = findByProps('deleteMessage', 'editMessage');
         const { showContextMenu } = findByProps('showContextMenu');
 
         if (MessageActions) {
             MessageActions.silentDelete = async (channelId, messageId) => {
                 try {
-                    // Get the text from your settings menu
+                    // Get the text from your settings
                     let customText = '...';
-                    try {
+                    if (rain.settings && rain.settings.get) {
                         customText = rain.settings.get('silent-delete', 'replaceText') || '...';
-                    } catch (e) {
-                        // Fallback if settings aren't loaded yet
                     }
                     
-                    // 1. Edit message to your custom text (e.g., "hi")
-                    await MessageActions.editMessage(channelId, messageId,                } catch ( { content: customText });
+                    // Edit message to your custom text
+                    await MessageActions.editMessage(channelId, messageId, { content: customText });
                     
-                    //e) 2. Wait half a second, then delete
-                    setTimeout(async () => {
-                        await MessageActions.deleteMessage(channelId, messageId);
+                    // Wait 500ms, then delete
+                    setTimeout(() => {
+                        MessageActions.deleteMessage(channelId, messageId);
                     }, 500);
- {
-                    // If edit fails, just delete the message normally
+                } catch (e) {
+                    // If edit fails, delete normally
                     MessageActions.deleteMessage(channelId, messageId);
                 }
             };
         }
 
-        if (showContextMenu) {
+        if (showContextMenu && rain.patcher) {
             rain.patcher.before(showContextMenu, 'default', (args) => {
                 const menu = args[0];
                 if (menu && menu.items) {
@@ -40,8 +37,7 @@ module.exports = {
                             label: 'Silent Delete',
                             icon: 'Trash',
                             action: () => {
-                                const { channelId, messageId } = menu.message;
-                                MessageActions.silentDelete(channelId, messageId);
+                                MessageActions.silentDelete(menu.message.channelId, menu.message.id);
                             }
                         });
                     }
@@ -50,15 +46,14 @@ module.exports = {
         }
     },
     stop() {
-        // Runs when you turn the plugin off
+        // Cleanup
     },
-    // Your settings menu config
     settings: [
         {
             type: "string",
             id: "replaceText",
             title: "Silent Delete Text",
-            description: "The text that replaces your message before it gets deleted.",
+            description: "Text that replaces your message before deletion.",
             default: "..."
         }
     ]
