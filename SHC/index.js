@@ -1,15 +1,5 @@
 module.exports = {
-    // Must be an array (using square brackets)
-    settings: [
-        {
-            type: "string",
-            id: "replaceText",
-            title: "Silent Delete Text",
-            description: "The text that replaces your message before it gets deleted.",
-            default: "..."
-        }
-    ],
-    onLoad: () => {
+    start(rain) {
         const { findByProps } = rain.metro;
         
         const MessageActions = findByProps('deleteMessage', 'editMessage');
@@ -18,25 +8,30 @@ module.exports = {
         if (MessageActions) {
             MessageActions.silentDelete = async (channelId, messageId) => {
                 try {
-                    // Read the text from the settings array
-                    const customText = this.settings.get('replaceText') || '...';
+                    // Get the text from your settings menu
+                    let customText = '...';
+                    try {
+                        customText = rain.settings.get('silent-delete', 'replaceText') || '...';
+                    } catch (e) {
+                        // Fallback if settings aren't loaded yet
+                    }
                     
-                    // 1. Edit message to your custom text
-                    await MessageActions.editMessage(channelId, messageId, { content: customText });
+                    // 1. Edit message to your custom text (e.g., "hi")
+                    await MessageActions.editMessage(channelId, messageId,                } catch ( { content: customText });
                     
-                    // 2. Wait 500ms, then delete
+                    //e) 2. Wait half a second, then delete
                     setTimeout(async () => {
                         await MessageActions.deleteMessage(channelId, messageId);
                     }, 500);
-                } catch (e) {
-                    // If edit fails, just delete
+ {
+                    // If edit fails, just delete the message normally
                     MessageActions.deleteMessage(channelId, messageId);
                 }
             };
         }
 
         if (showContextMenu) {
-            const unpatch = rain.patcher.before(showContextMenu, 'default', (args) => {
+            rain.patcher.before(showContextMenu, 'default', (args) => {
                 const menu = args[0];
                 if (menu && menu.items) {
                     const deleteIndex = menu.items.findIndex(i => i.label === 'Delete Message');
@@ -52,8 +47,19 @@ module.exports = {
                     }
                 }
             });
-            module.exports.onUnload = unpatch;
         }
     },
-    onUnload: () => {}
+    stop() {
+        // Runs when you turn the plugin off
+    },
+    // Your settings menu config
+    settings: [
+        {
+            type: "string",
+            id: "replaceText",
+            title: "Silent Delete Text",
+            description: "The text that replaces your message before it gets deleted.",
+            default: "..."
+        }
+    ]
 };
