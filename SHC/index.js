@@ -1,44 +1,49 @@
-function start(rain) {
-  const { metro, api } = rain;
-  const { patcher, ui, storage } = api;
-  const { findByStoreName, findByName, findByProps } = metro;
-  const { React, ReactNative: RN } = metro.common;
+const rainRuntime = globalThis.rain;
+if (!rainRuntime || !rainRuntime.api) {
+  throw new Error("Discord plugin API unavailable");
+}
 
-  const store = storage.createPluginStore("show-hidden-channels", {
-    enabled: true,
-    showLock: true,
-    lockEmoji: "🔒"
-  });
+const { metro, api } = rainRuntime;
+const { patcher, ui, storage } = api;
+const { findByStoreName, findByName, findByProps } = metro;
+const { React, ReactNative: RN } = metro.common;
 
-  const settings = new Proxy({}, {
-    get(_, key) {
-      return store.useStore.getState()[key];
-    },
-    set(_, key, value) {
-      store.useStore.getState().updateSettings({ [key]: value });
-      return true;
-    }
-  });
+const store = storage.createPluginStore("show-hidden-channels", {
+  enabled: true,
+  showLock: true,
+  lockEmoji: "🔒"
+});
 
-  const unpatches = [];
-  let PermissionStore = null;
-  const VIEW_CHANNEL = 1024n;
-
-  function isHidden(channel) {
-    if (!channel) return false;
-    if (typeof channel.isDM === "function" && (channel.isDM() || channel.isGroupDM?.() || channel.isMultiUserDM?.())) {
-      return false;
-    }
-    if (!PermissionStore) return false;
-    try {
-      if (PermissionStore.can(VIEW_CHANNEL, channel) === false) return true;
-      if (PermissionStore.can(1024, channel) === false) return true;
-      return false;
-    } catch {
-      return false;
-    }
+const settings = new Proxy({}, {
+  get(_, key) {
+    return store.useStore.getState()[key];
+  },
+  set(_, key, value) {
+    store.useStore.getState().updateSettings({ [key]: value });
+    return true;
   }
+});
 
+let unpatches = [];
+let PermissionStore = null;
+const VIEW_CHANNEL = 1024n;
+
+function isHidden(channel) {
+  if (!channel) return false;
+  if (typeof channel.isDM === "function" && (channel.isDM() || channel.isGroupDM?.() || channel.isMultiUserDM?.())) {
+    return false;
+  }
+  if (!PermissionStore) return false;
+  try {
+    if (PermissionStore.can(VIEW_CHANNEL, channel) === false) return true;
+    if (PermissionStore.can(1024, channel) === false) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function onStart() {
   PermissionStore = findByStoreName("PermissionStore");
 
   if (PermissionStore && typeof PermissionStore.can === "function") {
@@ -53,7 +58,7 @@ function start(rain) {
     );
   }
 
-  // Try adding lock icon
+  // Try to add lock icon
   try {
     const modules = [
       findByName("ChannelName", false),
@@ -95,11 +100,22 @@ function start(rain) {
   }
 
   ui.toasts.showToast("Show Hidden Channels enabled");
-
-  // Return cleanup function
-  return function stop() {
-    for (const unpatch of unpatches) {
-      try { unpatch(); } catch {}
-    }
-  };
 }
+
+function onStop() {
+  for (const unpatch of unpatches) {
+    try { unpatch(); } catch {}
+  }
+  unpatches = [];
+  ui.toasts.showToast("Show Hidden Channels disabled");
+}
+
+// This is the format rain expects
+module.exports = {
+  start() {
+    onStart();
+  },
+  stop() {
+    onStop();
+  }
+};
