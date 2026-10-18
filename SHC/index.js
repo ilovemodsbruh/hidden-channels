@@ -27,17 +27,20 @@ module.exports = {
         if (showContextMenu && rain.patcher) {
             rain.patcher.before(showContextMenu, "default", function(args) {
                 var menu = args[0];
-                if (menu && menu.items) {
-                    var idx = menu.items.findIndex(function(item) { return item.label === "Delete Message"; });
-                    if (idx !== -1) {
-                        menu.items.splice(idx, 0, {
-                            label: "Silent Delete",
-                            icon: "Trash",
-                            action: function() {
-                                MsgActions.silentDelete(menu.message.channelId, menu.message.id);
-                            }
-                        });
-                    }
+                var context = args[1];
+                
+                // Check if this is a message menu
+                if (menu && menu.items && (menu.message || (context && context.message))) {
+                    var msg = menu.message || context.message;
+                    
+                    // Add the button to the list
+                    menu.items.push({
+                        label: "Silent Delete",
+                        icon: "Trash",
+                        action: function() {
+                            MsgActions.silentDelete(msg.channelId || msg.channel_id, msg.id);
+                        }
+                    });
                 }
             });
         }
