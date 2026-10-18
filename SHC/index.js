@@ -26,6 +26,7 @@ const settings = new Proxy({}, {
 
 let unpatches = [];
 let PermissionStore = null;
+let originalCan = null;
 const VIEW_CHANNEL = 1024n;
 
 function isHidden(channel) {
@@ -33,20 +34,23 @@ function isHidden(channel) {
   if (typeof channel.isDM === "function" && (channel.isDM() || channel.isGroupDM?.() || channel.isMultiUserDM?.())) {
     return false;
   }
-  if (!PermissionStore) return false;
+  if (!PermissionStore || !originalCan) return false;
   try {
-    if (PermissionStore.can(VIEW_CHANNEL, channel) === false) return true;
-    if (PermissionStore.can(1024, channel) === false) return true;
-    return false;
-  } catch {
-    return false;
-  }
+    if (originalCan.call(PermissionStore, VIEW_CHANNEL, channel) === false) return true;
+  } catch {}
+  try {
+    if (originalCan.call(PermissionStore, 1024, channel) === false) return true;
+  } catch {}
+  return false;
 }
 
 function onStart() {
   PermissionStore = findByStoreName("PermissionStore");
 
   if (PermissionStore && typeof PermissionStore.can === "function") {
+    // save the real function BEFORE patching so isHidden() can still see true permissions
+    originalCan = PermissionStore.can;
+
     unpatches.push(
       patcher.instead("can", PermissionStore, function (args, orig) {
         const [perm] = args;
@@ -100,6 +104,19 @@ function onStart() {
   }
 
   ui.toasts.showToast("Show Hidden Channels enabled");
+
+  // DIAGNOSTIC: open the server first, then toggle the plugin off/on. Remove once done.
+  setTimeout(() => {
+    try {
+      const ChannelStore = findByStoreName("ChannelStore");
+      const gid = findByStoreName("SelectedGuildStore").getGuildId();
+      const chans = Object.values(ChannelStore.getMutableGuildChannelsForGuild(gid));
+      const n = chans.filter(c => c.name === "No Access").length;
+      ui.toasts.showToast(`${chans.length} channels, ${n} named No Access`);
+    } catch (e) {
+      ui.toasts.showToast("diag failed: " + e.message);
+    }
+  }, 2500);
 }
 
 function onStop() {
@@ -107,10 +124,10 @@ function onStop() {
     try { unpatch(); } catch {}
   }
   unpatches = [];
+  originalCan = null;
   ui.toasts.showToast("Show Hidden Channels disabled");
 }
 
-// This is the format rain expects
 module.exports = {
   start() {
     onStart();
