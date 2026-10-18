@@ -105,18 +105,24 @@ function onStart() {
 
   ui.toasts.showToast("Show Hidden Channels enabled");
 
-  // DIAGNOSTIC: open the server first, then toggle the plugin off/on. Remove once done.
+  // DIAGNOSTIC: toggle the plugin on, then go to the ORDER server within 8 seconds.
+  // Remove this block once we have the result.
   setTimeout(() => {
     try {
-      const ChannelStore = findByStoreName("ChannelStore");
-      const gid = findByStoreName("SelectedGuildStore").getGuildId();
-      const chans = Object.values(ChannelStore.getMutableGuildChannelsForGuild(gid));
-      const n = chans.filter(c => c.name === "No Access").length;
-      ui.toasts.showToast(`${chans.length} channels, ${n} named No Access`);
+      const CS = findByStoreName("ChannelStore");
+      const SG = findByStoreName("SelectedGuildStore");
+      const gid = SG?.getGuildId?.();
+      const a = CS?.getMutableGuildChannelsForGuild
+        ? Object.keys(CS.getMutableGuildChannelsForGuild(gid) || {}).length
+        : "nofn";
+      const b = CS?.getGuildChannels
+        ? Object.keys(CS.getGuildChannels(gid) || {}).length
+        : "nofn";
+      ui.toasts.showToast(`gid=${gid} | mutable=${a} | guild=${b}`);
     } catch (e) {
       ui.toasts.showToast("diag failed: " + e.message);
     }
-  }, 2500);
+  }, 8000);
 }
 
 function onStop() {
