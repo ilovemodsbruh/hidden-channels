@@ -1,7 +1,7 @@
 {
   "id": "silent-delete",
   "name": "Silent Delete",
-  "description": "Edits messages to '...' before deleting them.",
+  "description": "Edits messages to '...' before deleting.",
   "authors": [
     {
       "name": "ilovemodsbruh"
