@@ -1,54 +1,55 @@
 module.exports = {
-    onLoad: () => {
-        const { findByProps } = rain.metro;
+    start: function(rain) {
+        var findProps = rain.metro.findByProps;
+        var MsgActions = findProps("deleteMessage", "editMessage");
         
-        // Find Discord's message actions and context menu
-        const MessageActions = findByProps('deleteMessage', 'editMessage');
-        const { showContextMenu } = findByProps('showContextMenu');
-
-        if (MessageActions) {
-            // Create the silent delete function
-            MessageActions.silentDelete = async (channelId, messageId) => {
+        if (MsgActions) {
+            MsgActions.silentDelete = function(chId, msgId) {
+                var txt = "...";
                 try {
-                    // Edit to "..."
-                    await MessageActions.editMessage(channelId, messageId, { content: '...' });
-                    
-                    // Wait half a second, then delete
-                    setTimeout(async () => {
-                        await MessageActions.deleteMessage(channelId, messageId);
+                    var setting = rain.settings.get("replaceText");
+                    if (setting) txt = setting;
+                } catch(e) {}
+                
+                MsgActions.editMessage(chId, msgId, { content: txt }).then(function() {
+                    setTimeout(function() {
+                        MsgActions.deleteMessage(chId, msgId);
                     }, 500);
-                } catch (e) {
-                    // If edit fails, just delete normally
-                    MessageActions.deleteMessage(channelId, messageId);
-                }
+                }).catch(function() {
+                    MsgActions.deleteMessage(chId, msgId);
+                });
             };
         }
 
-        // Patch the context menu to add the "Silent Delete" button
-        if (showContextMenu) {
-            const unpatch = rain.patcher.before(showContextMenu, 'default', (args) => {
-                const menu = args[0];
-                
-                // Only add to message menus
+        var menuModule = findProps("showContextMenu");
+        var showContextMenu = menuModule ? (menuModule.showContextMenu || menuModule) : null;
+
+        if (showContextMenu && rain.patcher) {
+            rain.patcher.before(showContextMenu, "default", function(args) {
+                var menu = args[0];
                 if (menu && menu.items) {
-                    // Find the "Delete Message" button to put ours right next to it
-                    const deleteIndex = menu.items.findIndex(i => i.label === 'Delete Message');
-                    
-                    if (deleteIndex !== -1) {
-                        menu.items.splice(deleteIndex, 0, {
-                            label: 'Silent Delete',
-                            icon: 'Trash', // Uses Discord's built-in trash icon
-                            action: () => {
-                                const { channelId, messageId } = menu.message;
-                                MessageActions.silentDelete(channelId, messageId);
+                    var idx = menu.items.findIndex(function(item) { return item.label === "Delete Message"; });
+                    if (idx !== -1) {
+                        menu.items.splice(idx, 0, {
+                            label: "Silent Delete",
+                            icon: "Trash",
+                            action: function() {
+                                MsgActions.silentDelete(menu.message.channelId, menu.message.id);
                             }
                         });
                     }
                 }
             });
-            // Save to unload later
-            module.exports.onUnload = unpatch;
         }
     },
-    onUnload: () => {}
+    stop: function() {},
+    settings: [
+        {
+            type: "string",
+            id: "replaceText",
+            title: "Silent Delete Text",
+            description: "Text to replace message before delete.",
+            default: "..."
+        }
+    ]
 };
