@@ -1,12 +1,9 @@
 {
   "id": "silent-delete",
-  "name": "Silent Delete",
-  "description": "Edits messages to '...' before deleting.",
-  "authors": [
-    {
-      "name": "ilovemodsbruh"
-    }
-  ],
+  "name": "silent delete",
+  "description": "deletes ur message and replaces it to bypass vencord",
+  "version": "1.1.0",
+  "authors": ["ilovemodsbruh"],
   "main": "index.js",
-  "version": "1.0.0"
+  "settings": true
 }
