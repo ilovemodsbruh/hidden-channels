@@ -1,8 +1,8 @@
-export function start(rain) {
+function start(rain) {
   const { metro, api } = rain;
   const { patcher, ui, storage } = api;
   const { findByStoreName, findByName, findByProps } = metro;
-  const { FluxDispatcher, React, ReactNative: RN } = metro.common;
+  const { React, ReactNative: RN } = metro.common;
 
   const store = storage.createPluginStore("show-hidden-channels", {
     enabled: true,
@@ -22,7 +22,6 @@ export function start(rain) {
 
   const unpatches = [];
   let PermissionStore = null;
-
   const VIEW_CHANNEL = 1024n;
 
   function isHidden(channel) {
@@ -40,8 +39,8 @@ export function start(rain) {
     }
   }
 
-  // Force VIEW_CHANNEL to true
   PermissionStore = findByStoreName("PermissionStore");
+
   if (PermissionStore && typeof PermissionStore.can === "function") {
     unpatches.push(
       patcher.instead("can", PermissionStore, function (args, orig) {
@@ -54,7 +53,7 @@ export function start(rain) {
     );
   }
 
-  // Try to add lock icon
+  // Try adding lock icon
   try {
     const modules = [
       findByName("ChannelName", false),
@@ -97,8 +96,8 @@ export function start(rain) {
 
   ui.toasts.showToast("Show Hidden Channels enabled");
 
-  // Cleanup function
-  return () => {
+  // Return cleanup function
+  return function stop() {
     for (const unpatch of unpatches) {
       try { unpatch(); } catch {}
     }
