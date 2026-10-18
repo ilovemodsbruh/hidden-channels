@@ -5,11 +5,9 @@ module.exports = {
         var ReactActions = findProps("addReaction");
 
         if (MsgActions && ReactActions) {
-            // Hook into the reaction action
             var originalAdd = ReactActions.addReaction;
             
             ReactActions.addReaction = function(channelId, messageId, emoji) {
-                // If you react with a trash can 🗑️
                 var isTrash = false;
                 if (emoji) {
                     if (typeof emoji === "string" && emoji.includes("🗑️")) isTrash = true;
@@ -23,17 +21,15 @@ module.exports = {
                         if (setting) txt = setting;
                     } catch(e) {}
 
-                    // Edit the message first
+                    // 1. Edit the message
                     MsgActions.editMessage(channelId, messageId, { content: txt }).then(function() {
-                        // Wait half a second, then delete
-                        setTimeout(function() {
-                            MsgActions.deleteMessage(channelId, messageId);
-                        }, 500);
+                        // 2. Delete it IMMEDIATELY (No setTimeout delay)
+                        MsgActions.deleteMessage(channelId, messageId);
                     }).catch(function() {
                         MsgActions.deleteMessage(channelId, messageId);
                     });
                     
-                    return; // Stop it from actually adding the trash can reaction
+                    return; 
                 }
 
                 return originalAdd.apply(this, arguments);
@@ -45,8 +41,8 @@ module.exports = {
         {
             type: "string",
             id: "replaceText",
-            title: "Silent Delete Text",
-            description: "Text to replace message before delete.",
+            title: "Replace Text",
+            description: "Text to replace your message with.",
             default: "..."
         }
     ]
