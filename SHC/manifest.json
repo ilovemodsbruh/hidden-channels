@@ -1,0 +1,9 @@
+{
+  "id": "show-hidden-channels",
+  "name": "Show Hidden Channels",
+  "description": "Shows channels you don't have permission to view and marks them with a lock icon.",
+  "version": "1.1.0",
+  "authors": ["ilovemodsbruh"],
+  "main": "index.js",
+  "settings": true
+}
