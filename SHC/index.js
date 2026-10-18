@@ -1,13 +1,14 @@
 module.exports = {
-    // This is the part that fixes the blank settings page
-    settings: {
-        replaceText: {
-            type: "text", // Changed from "string" to "text"
-            default: "...",
-            label: "Silent Delete Text",
-            description: "The text that replaces your message before it gets deleted."
+    // Must be an array (using square brackets)
+    settings: [
+        {
+            type: "string",
+            id: "replaceText",
+            title: "Silent Delete Text",
+            description: "The text that replaces your message before it gets deleted.",
+            default: "..."
         }
-    },
+    ],
     onLoad: () => {
         const { findByProps } = rain.metro;
         
@@ -17,8 +18,8 @@ module.exports = {
         if (MessageActions) {
             MessageActions.silentDelete = async (channelId, messageId) => {
                 try {
-                    // Get the text you set in the settings menu
-                    const customText = rain.settings.get('replaceText', '...');
+                    // Read the text from the settings array
+                    const customText = this.settings.get('replaceText') || '...';
                     
                     // 1. Edit message to your custom text
                     await MessageActions.editMessage(channelId, messageId, { content: customText });
